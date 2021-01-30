@@ -1,0 +1,44 @@
+set border 1
+set winname class
+set bargravity c
+set bgcolor black
+set fgcolor gold
+set font "xos4 Terminess Powerline:size=12:antialias=false"
+set winname class
+set winfmt %n %s %t
+
+# rpbar option
+set padding 0 0 0 0
+
+alias sshot exec import -window root ~/screenshot-$(date +%F).jpg
+alias rmenu exec /home/a.melnikov/bin/rmenu
+# definekey top C-Print sshot
+bind C-Print sshot
+bind e rmenu
+bind C-e rmenu
+bind c exec xterm -e /usr/bin/bash -c '/usr/bin/tmux'
+bind C-c exec xterm -e /usr/bin/bash -c '/usr/bin/tmux'
+
+unmanage anki
+unmanage conky
+# unmanage rpbar
+
+# switch off the startup message
+startup_message off
+
+# exec xcompmgr -c -f -D 5 &
+exec xterm -e /usr/bin/bash -c '/usr/bin/tmux'
+exec firefox
+# exec /usr/local/bin/telegram
+# exec /usr/bin/thunderbird
+# exec /usr/local/bin/rpbar
+
+# composite manager and per window transparency
+# exec /usr/local/bin/xcompmgr -c &
+# exec transset-df -n bash 0.75
+
+# rpbar hooks adding
+# addhook switchwin exec rpbarsend
+# addhook switchframe exec rpbarsend
+# addhook switchgroup exec rpbarsend
+# addhook deletewindow exec rpbarsend
