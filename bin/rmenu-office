@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ratmenu -label "office" -fg "#ffea00" -bg "#000000" \
+    -style dreary -back ~/bin/rmenu \
+    "Calc" "openoffice.org --calc" \
+    "Writer" "openoffice.org --writer" &

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ratmenu -label "root" -fg "#ffea00" -bg "#000000" -style "dreary" \
+"Switch..." "~/bin/windows.sh" \
+"Office..." "~/bin/rmenu-office" \
+"tmpwm" "ratpoison -c 'tmpwm xfce4-session'" \
+"calendar" "ratpoison -c 'echo $(cal -m)'" \
+"lock session" "xflock4" &
