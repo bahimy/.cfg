@@ -3,7 +3,8 @@ set winname class
 set bargravity c
 set bgcolor black
 set fgcolor gold
-set font "xos4 Terminess Powerline:size=12:antialias=false"
+# set font "xos4 Terminess Powerline:size=12:antialias=false"
+set font "Terminess Powerline:size=12:antialias=false"
 set winname class
 set winfmt %n %s %t
 
