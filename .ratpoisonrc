@@ -1,4 +1,4 @@
-set border 1
+set border 0
 set winname class
 set bargravity c
 set bgcolor black
