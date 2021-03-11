@@ -128,6 +128,7 @@ nnoremap <silent> <F8> :TlistToggle<CR>
 nnoremap <silent> <F4> :NERDTreeToggle<CR>
 nnoremap <silent> <C-l> :bnext<CR>
 nnoremap <silent> <C-h> :bprevious<CR>
+nnoremap <silent> <C-n> :call NumberToggle()<CR>
 
 let g:ctrlp_map = '<c-p>'
 let g:ctrlp_cmd = 'CtrlP'
