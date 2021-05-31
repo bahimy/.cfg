@@ -1,0 +1,7 @@
+#!/bin/bash
+{% for disk in vm_data.disk_drive -%}
+{% set disk_add_data = disks.get(disk.InstanceId) -%}
+{% set disk_format = disk_add_data.get('volume-format') -%}
+qemu-img convert -f  {{ disk_format | lower }} {{ disk.InstanceId }} -O raw rbd:{{ storage_pool }}/{{ disk.InstanceId }}
+{% endfor %}
+virsh define {{ vm_name}}.xml

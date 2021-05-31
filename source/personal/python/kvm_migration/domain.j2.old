@@ -1,0 +1,134 @@
+<domain type='kvm'>
+  <name>{{ vm_name }}</name>
+  {% for mem in vm_data.memory -%}
+  <memory unit='{{ mem_map.get(mem.AllocationUnits) }}'>{{ mem.VirtualQuantity }}</memory>
+  <currentMemory>{{ mem.VirtualQuantity }}</currentMemory>
+  {% if mem.MaxMemorySizeMb and mem.MaxMemorySizeMb != ''%}<maxMemory slots="16">{{ mem.MaxMemorySizeMb }}</maxMemory>{% endif %}
+  {% endfor -%}
+  {% for cpu in vm_data.processor -%}
+    <vcpu current='{{ cpu.VirtualQuantity }}'>{{ cpu.max_num_of_vcpus }}</vcpu>
+  <cpu {% if cpu.UseHostCpu == 'true' %} model='host-model' {% endif %} match='exact'>
+    <model fallback='allow'>Broadwell</model>
+    <topology cores='{{ cpu.cpu_per_socket }}' sockets='{{ cpu.num_of_sockets }}' threads='{{ cpu.threads_per_cpu }}' />
+  </cpu>
+  {% endfor -%}
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-rhel7.0.0'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+  <clock offset='utc'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <pm>
+    <suspend-to-mem enabled='no'/>
+    <suspend-to-disk enabled='no'/>
+  </pm>
+  <devices>
+    {% set disk_letters="abcdefghij" -%}
+    {% set virtio_count = namespace(value=0) -%}
+    {% set scsi_count = namespace(value=0) -%}
+    {% set ide_count = namespace(value=1) -%}
+    {% for disk in vm_data.disk_drive -%}
+    {% set disk_add_data = disks.get(disk.InstanceId) -%}
+    {% set disk_interface = disk_add_data.get('disk-interface') -%}
+    {% if storage_type == 'rbd' -%}
+    <disk type='network' device='disk'>
+      {% if disk_interface == 'VirtIO_SCSI' -%}
+      {% set bus = "scsi" -%}
+      {% set disk_prefix = "s" -%}
+      {% elif disk_interface == 'VirtIO' -%}
+      {% set bus = "virtio" -%}
+      {% set disk_prefix = "v" -%}
+      {% else -%}
+      {% set bus = "ide" -%}
+      {% set disk_prefix = "h" -%}
+      {% endif -%}
+      <source protocol="rbd" name='{{ storage_pool }}/{{ disk.InstanceId }}'>
+        <host name='192.168.60.1' port='6789'/>
+        <host name='192.168.60.4' port='6789'/>
+      </source>
+      <alias name="{{ disk.Caption }}" />
+      <address {{ disk.Address | replace("{", "") | replace("}", "") }} />
+      {% if disk.BootOrder != '0' %}<boot order='{{ disk.BootOrder }}' />{% endif -%}
+      <target dev='{{ disk_prefix }}d{% if disk_interface == 'VirtIO_SCSI' %}{{ disk_letters[scsi_count.value] }}{% elif disk_interface == 'VirtIO' -%}{{ disk_letters[virtio_count.value] }}{% else %}{{ disk_letters[ide_count.value] }}{% endif %}' bus='{{ bus }}'/>
+      {% if disk_interface == 'VirtIO_SCSI' -%}
+      {% set scsi_count.value = scsi_count.value + 1 -%}
+      {% elif disk_interface == 'VirtIO' -%}
+      {% set virtio_count = virtio_count.value + 1 -%}
+      {% else -%}
+      {% set ide_count = ide_count.value + 1 -%}
+      {% endif -%}
+    </disk>
+    {% endif -%}
+    {% endfor -%}
+    <controller type='pci' index='0' model='pci-root'/>
+    {%- for cntr in vm_data.controller %}
+    {%- if cntr.Device == 'virtio-scsi'%}
+    <controller index='0' type='scsi' model='virtio-scsi'>
+    {% else %}
+    <controller index='0' type='{{ cntr.Device }}' {% if cntr.SpecParams and cntr.SpecParams.model %}model='{{ cntr.SpecParams.model }}'{% endif %}{% if cntr.Device == 'virtio-serial'%} ports='16'{% endif -%}>
+    {% endif -%}
+      <address {{ cntr.Address | replace("{", "") | replace("}", "") }}/>
+    </controller>
+    {% endfor -%}
+    {% for chan in vm_data.channel %}
+    <channel type='{{ chan.Device }}'>
+      <target type='virtio' {% if chan.Device == 'spicevmc'%}name="com.redhat.spice.0"{% endif %} {% if chan.Device == 'unix'%}name="org.qemu.guest_agent.0"{% endif %}/>
+      <address {{ chan.Address | replace("{", "") | replace("}", "") }}/>
+      {%- if chan.Alias %}
+      <alias name="{{ chan.Alias }}" />
+      {% endif -%}
+    </channel>
+    {% endfor -%}
+    {% for rngdev in vm_data.rng %}
+    <rng model='{{ rngdev.Device }}'>
+      <backend model="random">/dev/urandom</backend>
+      {% if rngdev.Alias %}<alias name='{{ rngdev.Alias }}' />{% endif %}
+      {% if rngdev.Address %}<address {{ rngdev.Address | replace("{", "") | replace("}", "") }} />{% endif %}
+    </rng>
+    {% endfor -%}
+    {% for mmb in vm_data.balloon %}
+    <memballoon {% if mmb.SpecParams and mmb.SpecParams.model %}model='{{ mmb.SpecParams.model }}'{% endif %}>
+        <stats period="5" />
+      {% if mmb.Alias %}<alias name='{{ mmb.Alias }}' />{% endif %}
+      {% if mmb.Address %}<address {{ mmb.Address | replace("{", "") | replace("}", "") }} />{% endif %}
+    </memballoon>
+    {% endfor -%}
+    {% for snd in vm_data.sound %}
+    <sound model='{{ snd.Device }}'>
+      {% if snd.Alias %}<alias name='{{ snd.Alias }}' />{% endif %}
+      {% if snd.Address %}<address {{ snd.Address | replace("{", "") | replace("}", "") }} />{% endif %}
+    </sound>
+    {% endfor -%}
+    {% for nic in vm_data.ethernet_adapter %}
+    <interface type='{{ nic.Device }}'>
+      <model type="virtio" />
+      <link state="up" />
+      <source bridge='{{ nic.Connection }}' />
+      <driver name="vhost" queues="4" />
+      {% if nic.Alias %}<alias name='{{ nic.Alias }}' />{% endif %}
+      {% if nic.Address %}<address {{ nic.Address | replace("{", "") | replace("}", "") }} />{% endif %}
+      {% if nic.MACAddress %}<mac address='{{ nic.MACAddress }}' />{% endif %}
+    </interface>
+    {% endfor -%}
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <input type='keyboard' bus='ps2'/>
+    <graphics type='vnc' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+  </devices>
+</domain>
